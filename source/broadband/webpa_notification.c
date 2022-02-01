@@ -163,6 +163,13 @@ const char * notifyparameters[]={
 "Device.X_COMCAST-COM_GRE.Tunnel.1.Interface.1.LocalInterfaces",
 "Device.X_COMCAST-COM_GRE.Tunnel.1.Interface.2.VLANID",
 "Device.X_COMCAST-COM_GRE.Tunnel.1.Interface.2.LocalInterfaces",
+#ifdef _HUB4_PRODUCT_REQ_
+"Device.NAT.X_CISCO_COM_PortTriggers.Enable",
+"Device.UPnP.Device.UPnPIGD",
+"Device.UserInterface.X_CISCO_COM_RemoteAccess.HttpEnable",
+"Device.UserInterface.X_CISCO_COM_RemoteAccess.HttpsEnable",
+#endif
+#if (defined(_XB8_PRODUCT_REQ_) && defined(_COSA_BCM_ARM_)) || defined(_SR300_PRODUCT_REQ_)
 "Device.WiFi.AccessPoint.10201.Security.ModeEnabled",
 "Device.WiFi.AccessPoint.10201.Security.X_COMCAST-COM_KeyPassphrase",
 "Device.WiFi.AccessPoint.10201.SSIDAdvertisementEnabled",
@@ -192,6 +199,7 @@ const char * notifyparameters[]={
 "Device.WiFi.Radio.10200.Channel",
 "Device.WiFi.Radio.10200.OperatingFrequencyBand",
 "Device.WiFi.Radio.10200.OperatingChannelBandwidth",
+#endif
 /* Always keep AdvancedSecurity parameters as the last parameters in notify list as these have to be removed if cujo/fp is not enabled. */
 "Device.DeviceInfo.X_RDKCENTRAL-COM_AdvancedSecurity.SafeBrowsing.Enable",
 "Device.DeviceInfo.X_RDKCENTRAL-COM_AdvancedSecurity.Softflowd.Enable"
