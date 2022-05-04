@@ -62,10 +62,10 @@ void getValues(const char *paramName[], const unsigned int paramCount, int index
     ParamCompList *ParamGroup = NULL;
     char **compName = NULL;
     char **dbusPath = NULL;
-    WalPrint("------------- getValues -------------\n");
+    WalInfo("------------- getValues -------------\n");
     for(cnt1 = 0; cnt1 < paramCount; cnt1++)
     {
-        WalPrint("paramName[%d] : %s\n",cnt1,paramName[cnt1]);
+        WalInfo("paramName[%d] : %s\n",cnt1,paramName[cnt1]);
         // Get the matching component index from cache
         walStrncpy(parameterName,paramName[cnt1],sizeof(parameterName));
         // To get list of component name and dbuspath
@@ -88,10 +88,10 @@ void getValues(const char *paramName[], const unsigned int paramCount, int index
     if(error != 1)
     {
         isLargeWildCard = 0;
-        WalPrint("compCount : %d paramCount: %d\n",compCount,paramCount);
+        WalInfo("compCount : %d paramCount: %d\n",compCount,paramCount);
         if(compCount > paramCount)
         {
-            WalPrint("compCount is greater than paramCount\n");
+            WalInfo("compCount is greater than paramCount\n");
             isLargeWildCard = 1;
         }
 
@@ -125,7 +125,7 @@ void getValues(const char *paramName[], const unsigned int paramCount, int index
                 ret = getParamValues(ParamGroup[cnt1].parameterName, ParamGroup[cnt1].parameterCount, ParamGroup[cnt1].comp_name, ParamGroup[cnt1].dbus_path, timeSpan, index, startIndex, paramArr,&retCount);
                 index = index + ParamGroup[cnt1].parameterCount;   
             }
-            WalPrint("After getParamValues index = %d ,startIndex : %d retCount =  %d\n",index,startIndex,retCount);
+            WalInfo("After getParamValues index = %d ,startIndex : %d retCount =  %d\n",index,startIndex,retCount);
             if(ret != CCSP_SUCCESS)
             {
                 WalError("Get Atomic Values call failed for ParamGroup[%d]->comp_name :%s ret: %d\n",cnt1,ParamGroup[cnt1].comp_name,ret);
@@ -417,7 +417,7 @@ static int getParamValues(char *parameterNames[], int paramCount, char *CompName
     int ret = 0, val_size = 0, cnt=0, retIndex=0, error=0;
     char **parameterNamesLocal = NULL;
     parameterValStruct_t **parameterval = NULL;
-    WalPrint(" ------ Start of getParamValues ----\n");
+    WalInfo(" ------ Start of getParamValues ----\n");
     parameterNamesLocal = (char **) malloc(sizeof(char *) * paramCount);
     memset(parameterNamesLocal,0,(sizeof(char *) * paramCount));
 
@@ -479,7 +479,7 @@ static int getParamValues(char *parameterNames[], int paramCount, char *CompName
         }
         else
         {
-            WalPrint("val_size : %d\n",val_size);
+            WalInfo("val_size : %d\n",val_size);
             if (val_size > 0)
             {
 		if((paramCount == val_size) && (parameterNamesLocal[0][strlen(parameterNamesLocal[0])-1] != '.'))
@@ -492,11 +492,11 @@ static int getParamValues(char *parameterNames[], int paramCount, char *CompName
 
                         IndexMpa_CPEtoWEBPA(&parameterval[cnt][0].parameterValue);
 
-                        WalPrint("B4 assignment\n");
+                        WalInfo("B4 assignment\n");
                         (*paramArr)[paramIndex][0].name = parameterval[cnt][0].parameterName;
                         (*paramArr)[paramIndex][0].value = parameterval[cnt][0].parameterValue;
                         (*paramArr)[paramIndex][0].type = parameterval[cnt][0].type;
-                        WalPrint("success: %s %s %d \n",(*paramArr)[paramIndex][0].name,(*paramArr)[paramIndex][0].value, (*paramArr)[paramIndex][0].type);
+                        WalInfo("success: %s %s %d \n",(*paramArr)[paramIndex][0].name,(*paramArr)[paramIndex][0].value, (*paramArr)[paramIndex][0].type);
                         paramIndex++;
                     }
                 }
@@ -516,11 +516,11 @@ static int getParamValues(char *parameterNames[], int paramCount, char *CompName
                         WalPrint("Stack:> success: %s %s %d \n",parameterval[cnt][0].parameterName,parameterval[cnt][0].parameterValue, parameterval[cnt][0].type);
                         IndexMpa_CPEtoWEBPA(&parameterval[cnt][0].parameterName);
                         IndexMpa_CPEtoWEBPA(&parameterval[cnt][0].parameterValue);
-                        WalPrint("B4 assignment\n");
+                        WalInfo("B4 assignment\n");
                         (*paramArr)[paramIndex][cnt+startIndex].name = parameterval[cnt][0].parameterName;
                         (*paramArr)[paramIndex][cnt+startIndex].value = parameterval[cnt][0].parameterValue;
                         (*paramArr)[paramIndex][cnt+startIndex].type = parameterval[cnt][0].type;
-                        WalPrint("success: %s %s %d \n",(*paramArr)[paramIndex][cnt+startIndex].name,(*paramArr)[paramIndex][cnt+startIndex].value, (*paramArr)[paramIndex][cnt+startIndex].type);
+                        WalInfo("success: %s %s %d \n",(*paramArr)[paramIndex][cnt+startIndex].name,(*paramArr)[paramIndex][cnt+startIndex].value, (*paramArr)[paramIndex][cnt+startIndex].type);
                     }
                 }
             }

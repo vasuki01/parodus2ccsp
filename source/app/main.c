@@ -22,7 +22,7 @@
 #ifndef INCLUDE_BREAKPAD
 static void sig_handler(int sig);
 #endif
-
+void test_Getfunction();
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -68,6 +68,8 @@ int main()
 #ifdef FEATURE_SUPPORT_WEBCONFIG
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 #endif
+
+	test_Getfunction();
 	parodus_receive_wait();
 #ifdef FEATURE_SUPPORT_WEBCONFIG
 curl_global_cleanup();
@@ -79,6 +81,15 @@ curl_global_cleanup();
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/
+
+void test_Getfunction()
+{
+	WalInfo("Inside test_Getfunction()\n");
+	char *reqPayload = "{\"names\":[\"Device.DeviceInfo.X_CISCO_COM_FirmwareName\",\"Device.X_RDKCENTRAL-COM_Report.InterfaceDevicesWifi.Enabled\",\"Device.X_RDKCENTRAL-COM_Report.InterfaceDevicesWifi.ReportingPeriod\",\"Device.X_RDKCENTRAL-COM_Report.InterfaceDevicesWifi.PollingPeriod\",\"Device.X_RDKCENTRAL-COM_Report.InterfaceDevicesWifi.SchemaID\",\"Device.X_RDKCENTRAL-COM_Report.InterfaceDevicesWifi.Default.ReportingPeriod\",\"Device.X_RDKCENTRAL-COM_Report.InterfaceDevicesWifi.Default.PollingPeriod\",\"Device.X_RDKCENTRAL-COM_Report.InterfaceDevicesWifi.Default.OverrideTTL\",\"Device.X_RDKCENTRAL-COM_Report.NetworkDevicesStatus.Enabled\",\"Device.X_RDKCENTRAL-COM_Report.NetworkDevicesStatus.ReportingPeriod\",\"Device.X_RDKCENTRAL-COM_Report.NetworkDevicesStatus.PollingPeriod\",\"Device.X_RDKCENTRAL-COM_Report.NetworkDevicesStatus.SchemaID\",\"Device.X_RDKCENTRAL-COM_Report.NetworkDevicesStatus.Default.ReportingPeriod\",\"Device.X_RDKCENTRAL-COM_Report.NetworkDevicesStatus.Default.PollingPeriod\",\"Device.X_RDKCENTRAL-COM_Report.NetworkDevicesStatus.Default.OverrideTTL\",\"Device.X_RDKCENTRAL-COM_Report.NetworkDevicesTraffic.Enabled\",\"Device.X_RDKCENTRAL-COM_Report.NetworkDevicesTraffic.ReportingPeriod\",\"Device.X_RDKCENTRAL-COM_Report.NetworkDevicesTraffic.PollingPeriod\",\"Device.X_RDKCENTRAL-COM_Report.NetworkDevicesTraffic.SchemaID\",\"Device.X_RDKCENTRAL-COM_Report.NetworkDevicesTraffic.Default.ReportingPeriod\",\"Device.X_RDKCENTRAL-COM_Report.NetworkDevicesTraffic.Default.PollingPeriod\",\"Device.X_RDKCENTRAL-COM_Report.NetworkDevicesTraffic.Default.OverrideTTL\",\"Device.X_RDKCENTRAL-COM_Report.RadioInterfaceStatistics.Enabled\",\"Device.X_RDKCENTRAL-COM_Report.RadioInterfaceStatistics.ReportingPeriod\",\"Device.X_RDKCENTRAL-COM_Report.RadioInterfaceStatistics.PollingPeriod\",\"Device.X_RDKCENTRAL-COM_Report.RadioInterfaceStatistics.SchemaID\",\"Device.X_RDKCENTRAL-COM_Report.RadioInterfaceStatistics.Default.ReportingPeriod\",\"Device.X_RDKCENTRAL-COM_Report.RadioInterfaceStatistics.Default.PollingPeriod\",\"Device.X_RDKCENTRAL-COM_Report.RadioInterfaceStatistics.Default.OverrideTTL\",\"Device.WiFi.SSID.10001.Enable\",\"Device.WiFi.SSID.10001.Status\",\"Device.WiFi.SSID.10001.Alias\",\"Device.WiFi.SSID.10001.Name\",\"Device.WiFi.SSID.10001.LastChange\",\"Device.WiFi.SSID.10001.LowerLayers\",\"Device.WiFi.SSID.10001.BSSID\",\"Device.WiFi.SSID.10001.MACAddress\",\"Device.WiFi.SSID.10001.SSID\",\"Device.WiFi.SSID.10001.X_COMCAST-COM_DefaultSSID\",\"Device.WiFi.SSID.10001.X_CISCO_COM_EnableOnline\",\"Device.WiFi.SSID.10001.X_CISCO_COM_RouterEnabled\",\"Device.WiFi.SSID.10001.Stats.BytesSent\",\"Device.WiFi.SSID.10001.Stats.BytesReceived\",\"Device.WiFi.SSID.10001.Stats.PacketsSent\",\"Device.WiFi.SSID.10001.Stats.PacketsReceived\",\"Device.WiFi.SSID.10001.Stats.ErrorsSent\",\"Device.WiFi.SSID.10001.Stats.ErrorsReceived\",\"Device.WiFi.SSID.10001.Stats.UnicastPacketsSent\",\"Device.WiFi.SSID.10001.Stats.UnicastPacketsReceived\",\"Device.WiFi.SSID.10001.Stats.DiscardPacketsSent\",\"Device.WiFi.SSID.10001.Stats.DiscardPacketsReceived\",\"Device.WiFi.SSID.10001.Stats.MulticastPacketsSent\",\"Device.WiFi.SSID.10001.Stats.MulticastPacketsReceived\",\"Device.WiFi.SSID.10001.Stats.BroadcastPacketsSent\",\"Device.WiFi.SSID.10001.Stats.BroadcastPacketsReceived\",\"Device.WiFi.SSID.10001.Stats.UnknownProtoPacketsReceived\",\"Device.WiFi.SSID.10001.Stats.RetransCount\",\"Device.WiFi.SSID.10001.Stats.FailedRetransCount\",\"Device.WiFi.SSID.10001.Stats.RetryCount\",\"Device.WiFi.SSID.10001.Stats.MultipleRetryCount\",\"Device.WiFi.SSID.10001.Stats.AggregatedPacketCount\",\"Device.WiFi.SSID.10001.Stats.ACKFailureCount\"],\"command\": \"GET\"}";
+    	char *transactionId = "aasfsdfgeh"; 
+    	char *resPayload = NULL;
+	processRequest(reqPayload, transactionId, &resPayload);
+}
 #ifndef INCLUDE_BREAKPAD
 static void sig_handler(int sig)
 {
