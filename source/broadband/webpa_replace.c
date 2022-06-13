@@ -8,6 +8,8 @@
 
 #include "webpa_table.h"
 
+#define RBUS_ENABLE  "Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.RBUS.Enable"
+
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
@@ -490,6 +492,7 @@ static int getWritableParams(char *paramName, char ***writableParams, int *param
     char l_Subsystem[MAX_DBUS_INTERFACE_LEN] = { 0 };
     componentStruct_t ** ppComponents = NULL;
     char *tempStr = NULL;
+    char *isRbus =NULL;
     char temp[MAX_PARAMETERNAME_LEN] = { 0 };
     //TODO: Coverity Requirement stack space exceeds 10000 bytes use 2048bytes forMAX_PARAMETERNAME_LEN.
     char *paramList[MAX_PARAMETERNAME_LEN] = { 0 };
@@ -497,6 +500,9 @@ static int getWritableParams(char *paramName, char ***writableParams, int *param
     strncpy(l_Subsystem, "eRT.",sizeof(l_Subsystem));
 #endif
     parameterInfoStruct_t **parameterInfo = NULL;
+    
+    isRbus = getParameterValue(RBUS_ENABLE);
+    WalInfo("Rbus =%s\n", isRbus);
     WalInfo("==================== Start of getWritableParams ==================\n");
     snprintf(dst_pathname_cr, sizeof(dst_pathname_cr),"%s%s", l_Subsystem, CCSP_DBUS_INTERFACE_CR);
     ret = CcspBaseIf_discComponentSupportingNamespace(bus_handle,dst_pathname_cr, paramName, l_Subsystem, &ppComponents, &size);
@@ -512,7 +518,8 @@ static int getWritableParams(char *paramName, char ***writableParams, int *param
             for(cnt = 0; cnt < val_size; cnt++)
             {
                 len = strlen(paramName);
-                if(parameterInfo[cnt]->writable == 1)
+                if(((strncmp(isRbus, "true", strlen("true")) == 0) && parameterInfo[cnt]->writable == 2) || 
+                   ((strncmp(isRbus, "false", strlen("false")) == 0) && parameterInfo[cnt]->writable == 1))
                 {
                     walStrncpy(temp, parameterInfo[cnt]->parameterName,sizeof(temp));
                     tempStr =temp + len;
