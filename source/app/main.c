@@ -33,7 +33,7 @@ int main()
         int ret = -1;
 
 #ifdef INCLUDE_BREAKPAD
-    breakpad_ExceptionHandler();
+    //breakpad_ExceptionHandler();
 #else
 	signal(SIGTERM, sig_handler);
 	signal(SIGINT, sig_handler);
@@ -69,6 +69,7 @@ int main()
 	initComponentCaching(ret);
 	// Initialize Apply WiFi Settings handler
 	initApplyWiFiSettings();
+	SubscribeCloudConnOnlineEvent();
 	initNotifyTask(ret);
 #ifdef FEATURE_SUPPORT_WEBCONFIG
 	curl_global_init(CURL_GLOBAL_DEFAULT);
