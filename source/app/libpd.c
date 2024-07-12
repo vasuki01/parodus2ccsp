@@ -384,9 +384,11 @@ int getConnCloudStatus(char *device_mac)
 		}
 		else
 		{
+			WalInfo("Inside lipd.c\n");
 			req_wrp_msg = (wrp_msg_t *)malloc(sizeof(wrp_msg_t));
 			if(req_wrp_msg != NULL)
 			{
+				WalInfo("req_wrp_msg is not null\n");
 				memset(req_wrp_msg, 0, sizeof(wrp_msg_t));
 				req_wrp_msg->msg_type = WRP_MSG_TYPE__RETREIVE;
 
@@ -397,21 +399,21 @@ int getConnCloudStatus(char *device_mac)
 				{
 					snprintf(source, MAX_STR_LENGTH, "mac:%s/config", device_mac);
 					req_wrp_msg->u.crud.source = source;
-					WalPrint("req_wrp_msg->u.crud.source is %s\n", req_wrp_msg->u.crud.source);
+					WalInfo("req_wrp_msg->u.crud.source is %s\n", req_wrp_msg->u.crud.source);
 				}
 
 				if(dest !=NULL)
 				{
 					snprintf(dest, MAX_STR_LENGTH, "mac:%s/parodus/cloud-status", device_mac);
 					req_wrp_msg->u.crud.dest = dest;
-					WalPrint("req_wrp_msg->u.crud.dest is %s\n", req_wrp_msg->u.crud.dest);
+					WalInfo("req_wrp_msg->u.crud.dest is %s\n", req_wrp_msg->u.crud.dest);
 				}
 
 				contentType = strdup(CONTENT_TYPE_JSON);
 				if(contentType != NULL)
 				{
 					req_wrp_msg->u.crud.content_type = contentType;
-					WalPrint("retrieve content_type is %s\n",req_wrp_msg->u.crud.content_type);
+					WalInfo("retrieve content_type is %s\n",req_wrp_msg->u.crud.content_type);
 				}
 
 				max_retry_sleep = (int) pow(2, backoff_max_time) -1;
@@ -423,7 +425,7 @@ int getConnCloudStatus(char *device_mac)
 			        {
 			              backoffRetryTime = (int) pow(2, c) -1;
 			        }
-					WalPrint("Backoff calculated is %d\n", backoffRetryTime);
+					WalInfo("Backoff calculated is %d\n", backoffRetryTime);
 
 					transaction_uuid = generate_trans_uuid();
 					if(transaction_uuid !=NULL)

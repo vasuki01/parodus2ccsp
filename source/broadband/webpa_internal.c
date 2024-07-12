@@ -841,8 +841,9 @@ char * getParameterValue(char *paramName)
 	char *paramValue = (char *) malloc(sizeof(char)*64);
 	paramCount = sizeof(getParamList)/sizeof(getParamList[0]);
 	param_t **parametervalArr = (param_t **) malloc(sizeof(param_t *) * paramCount);
-	
+	WalInfo("Before calling getValues\n");
 	getValues(getParamList, paramCount, 0, NULL,&parametervalArr, &count, &ret);
+	WalInfo("After getValues\n");
 	
 	if (ret == WDMP_SUCCESS )
 	{
@@ -859,7 +860,6 @@ char * getParameterValue(char *paramName)
 	}
 	
 	WAL_FREE(parametervalArr);
-
 	return paramValue;
 }
 
@@ -1449,6 +1449,7 @@ WDMP_STATUS check_ethernet_wan_status()
 			return ETH_FAILED;
 		}
         status = getParameterValue(ETH_WAN_STATUS_PARAM);
+         WalInfo("After getParameterValue \n");
         if(status != NULL && strncmp(status, "true", strlen("true")) == 0)
         {
             WalInfo("Ethernet WAN is enabled\n");
@@ -1459,6 +1460,7 @@ WDMP_STATUS check_ethernet_wan_status()
         }
 		WAL_FREE(status);
     }
+    
     return WDMP_FAILURE;
 }
 
@@ -1494,3 +1496,4 @@ WDMP_STATUS createForceSyncJsonSchema(char *value, char *transactionId, char** s
 	return WDMP_FAILURE;
 }
 #endif
+

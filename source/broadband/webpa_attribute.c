@@ -162,7 +162,7 @@ static int getParamAttributes(char *parameterNames[], int paramCount, char *Comp
 	{
 		WalInfo("CompName = %s, dbusPath : %s, paramCount = %d\n", CompName, dbusPath, paramCount);
 		ret = CcspBaseIf_getParameterAttributes(bus_handle,CompName,dbusPath,parameterNamesLocal,paramCount, &sizeAttrArr, &ppAttrArray);
-		WalPrint("----- After GPA ret = %d------\n",ret);
+		WalInfo("----- After GPA ret = %d------\n",ret);
 		if (ret != CCSP_SUCCESS)
 		{
 			WalError("Error:Failed to GetAttributes for parameters ret: %d\n", ret);
@@ -170,7 +170,7 @@ static int getParamAttributes(char *parameterNames[], int paramCount, char *Comp
 		}
 		else
 		{
-			WalPrint("sizeAttrArr : %d\n",sizeAttrArr);
+			WalInfo("sizeAttrArr : %d\n",sizeAttrArr);
 			for (cnt = 0; cnt < sizeAttrArr; cnt++)
 			{
 			        
@@ -180,11 +180,11 @@ static int getParamAttributes(char *parameterNames[], int paramCount, char *Comp
 				(*attr)[index].value = (char *) malloc(sizeof(char) * MAX_PARAMETERVALUE_LEN);
 
 				IndexMpa_CPEtoWEBPA(&ppAttrArray[cnt]->parameterName);
-				WalPrint("ppAttrArray[cnt]->parameterName : %s\n",ppAttrArray[cnt]->parameterName);
+				WalInfo("ppAttrArray[cnt]->parameterName : %s\n",ppAttrArray[cnt]->parameterName);
 				walStrncpy((*attr)[index].name, ppAttrArray[cnt]->parameterName,MAX_PARAMETERNAME_LEN);
 				sprintf((*attr)[index].value, "%d", ppAttrArray[cnt]->notification);
 				(*attr)[index].type = WDMP_INT;
-				WalPrint("success: %s %s %d \n",(*attr)[index].name,(*attr)[index].value,(*attr)[index].type);
+				WalInfo("success: %s %s %d \n",(*attr)[index].name,(*attr)[index].value,(*attr)[index].type);
 				index++;
 			}
 
