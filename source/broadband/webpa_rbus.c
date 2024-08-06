@@ -4,7 +4,11 @@
 #include <stdlib.h>
 #include <wdmp-c.h>
 #include <cimplog.h>
+#include <pthread.h>
 #include "webpa_rbus.h"
+#include "webpa_notification.h"
+
+#define CLOUD_CONN_ONLINE "cloud_conn_online_event"
 
 static rbusHandle_t rbus_handle;
 static bool isRbus = false;
@@ -46,12 +50,13 @@ WDMP_STATUS webpaRbusInit(const char *pComponentName)
 void webpaRbus_Uninit()
 {
     rbus_close(rbus_handle);
+    rbus_handle = NULL;
 }
 
 rbusError_t setTraceContext(char* traceContext[])
 {
         rbusError_t ret = RBUS_ERROR_BUS_ERROR;
-        if(isRbusInitialized)
+        if(isRbusInitialized())
         {
                 if(traceContext[0] != NULL && traceContext[1] != NULL) {
                        if(strlen(traceContext[0]) > 0 && strlen(traceContext[1]) > 0) {
@@ -83,7 +88,7 @@ rbusError_t getTraceContext(char* traceContext[])
         rbusError_t ret = RBUS_ERROR_BUS_ERROR;
         char traceParent[512] = {'\0'};
         char traceState[512] = {'\0'};
-	if(isRbusInitialized)
+	if(isRbusInitialized())
         {
 	      ret =  rbusHandle_GetTraceContextAsString(rbus_handle, traceParent, sizeof(traceParent), traceState, sizeof(traceState));
 	      if( ret == RBUS_ERROR_SUCCESS) {
@@ -110,7 +115,7 @@ rbusError_t getTraceContext(char* traceContext[])
 rbusError_t clearTraceContext()
 {
 	rbusError_t ret = RBUS_ERROR_BUS_ERROR;
-	if(isRbusInitialized)
+	if(isRbusInitialized())
 	{
 		ret = rbusHandle_ClearTraceContext(rbus_handle);
 		if(ret == RBUS_ERROR_SUCCESS) {
@@ -124,3 +129,62 @@ rbusError_t clearTraceContext()
 		WalError("Rbus not initialized in clearTraceContext funcion\n");
         }
 }
+
+  static void cloudConnEventHandler(
+    rbusHandle_t handle,
+    rbusEvent_t const* event,
+    rbusEventSubscription_t* subscription)
+{
+
+    rbusValue_t newValue = rbusObject_GetValue(event->data, "value");
+    if(newValue == NULL)
+    {
+    	WalError("cloudConnEventHandler: Received newValue as NULL \n");
+    	return;
+    }
+    
+    int incoming_value = rbusValue_GetInt32(newValue);
+
+    WalInfo("Received cloud online callback event %s, incoming_value %d\n", event->name, incoming_value);
+
+    if(incoming_value)
+    {
+	WalPrint("Received cloud connection online event\n");
+	pthread_mutex_lock (get_global_sync_mutex());
+	//Signalling sync notification retry when cloud connection event is received.
+	pthread_cond_signal(get_global_sync_condition());
+	pthread_mutex_unlock(get_global_sync_mutex());
+    }
+    else
+    {
+    	WalError("Failed to receive cloud connection event as incoming_value is not equal to 1 \n");
+    }
+    (void)handle;
+    (void)subscription;
+}
+
+int SubscribeCloudConnOnlineEvent()
+{
+	int rc = RBUS_ERROR_SUCCESS;
+    	WalPrint("rbus event subscribe to cloud connection online subscribe callback\n");
+    	if(isRbusInitialized())
+    	{
+    		rc = rbusEvent_Subscribe(rbus_handle, CLOUD_CONN_ONLINE, cloudConnEventHandler, NULL, 0);
+    		if(rc != RBUS_ERROR_SUCCESS)
+		{
+			WalError("rbusEvent_Subscribe to %s failed: %d\n", CLOUD_CONN_ONLINE, rc);
+			return rc;
+		}
+		else
+		{
+			WalInfo("rbusEvent_Subscribe to %s success\n", CLOUD_CONN_ONLINE);
+		}
+	}
+	else 
+	{
+		WalError("Failed to subscribe to cloud_conn_online event as rbus is not initialized\n");
+		return RBUS_ERROR_BUS_ERROR;
+        }
+        return rc;
+}
+

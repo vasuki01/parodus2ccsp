@@ -35,6 +35,10 @@
 #define DEVICE_BOOT_TIME                "Device.DeviceInfo.X_RDKCENTRAL-COM_BootTime"
 #define FP_PARAM                  "Device.DeviceInfo.X_RDKCENTRAL-COM_DeviceFingerPrint.Enable"
 #define CLOUD_STATUS 				"cloud-status"
+
+pthread_mutex_t sync_mutex=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t sync_condition=PTHREAD_COND_INITIALIZER;
+
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
@@ -56,6 +60,9 @@ static NotifyMsg *notifyMsgQ = NULL;
 void (*notifyCbFn)(NotifyData*) = NULL;
 static WebPaCfg webPaCfg;
 char deviceMAC[32]={'\0'};
+static int g_syncRetryThreadStarted = 0;
+ int g_syncNotifyInProgress = 0;
+ int g_checkSyncNotifyRetry = 0;
 #ifdef FEATURE_SUPPORT_WEBCONFIG
 char *g_systemReadyTime=NULL;
 #endif
@@ -231,12 +238,15 @@ void sendNotificationForFactoryReset();
 void sendNotificationForFirmwareUpgrade();
 static WDMP_STATUS addOrUpdateFirmwareVerToConfigFile(char *value);
 static WDMP_STATUS processParamNotification(ParamNotify *paramNotify, unsigned int *cmc, char **cid);
+static WDMP_STATUS processParamNotificationRetry(unsigned int *cmc, char **cid);
 static void processConnectedClientNotification(NodeData *connectedNotify, char *deviceId, char **version, char ** nodeMacId, char **timeStamp, char **destination);
 static WDMP_STATUS processFactoryResetNotification(ParamNotify *paramNotify, unsigned int *cmc, char **cid, char **reason);
 static WDMP_STATUS processFirmwareUpgradeNotification(ParamNotify *paramNotify, unsigned int *cmc, char **cid);
 void processDeviceStatusNotification(int status);
 static void mapComponentStatusToGetReason(COMPONENT_STATUS status, char *reason);
 void getDeviceMac();
+void SyncNotifyRetryTask();
+void *SyncNotifyRetry();
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -309,7 +319,7 @@ void *FactoryResetCloudSync()
 				sleep(backoffRetryTime);
 			}
 			//check cloud-status
-			WalPrint("check cloud-status\n");
+			WalInfo("check cloud-status\n");
 			status = getConnCloudStatus(deviceMAC);
 			WalPrint("getConnCloudStatus : status returned is %d\n", status);
 			if(status==1)
@@ -353,6 +363,112 @@ void *FactoryResetCloudSync()
 	return NULL;
 }
 
+void SyncNotifyRetryTask()
+{
+	int err = 0;
+	pthread_t threadId;
+	err = pthread_create(&threadId, NULL, SyncNotifyRetry, NULL);
+	if (err != 0)
+	{
+		WalError("Error creating SyncNotifyRetry thread :[%s]\n", strerror(err));
+	}
+	else
+	{
+		WalInfo("SyncNotifyRetry Thread created Successfully\n");
+		g_syncRetryThreadStarted = 1;
+	}
+}
+
+void *SyncNotifyRetry()
+{
+	pthread_detach(pthread_self());
+	char *dbCMC = NULL;
+	int backoffRetryTime = 0;
+	int backoff_max_time = 9;
+	struct timespec ts;
+	int c = 3;
+	int  rv;    
+	int max_retry_sleep = (int) pow(2, backoff_max_time) -1;
+	WalInfo("SyncNotifyRetry: max_retry_sleep is %d\n", max_retry_sleep );
+        
+	while(FOREVER())
+	{
+		if(backoffRetryTime < max_retry_sleep)
+       	{
+			backoffRetryTime = (int) pow(2, c) -1;
+		}
+		clock_gettime(CLOCK_REALTIME, &ts);
+		ts.tv_sec += backoffRetryTime;
+		WalInfo("SyncNotifyRetry: Inside while device mac : %s g_checkSyncNotifyRetry %d\n",deviceMAC ,g_checkSyncNotifyRetry );
+		//wait for backoff delay for retransmission
+		if(g_checkSyncNotifyRetry == 1)
+		{
+			WalInfo("1. Wait for backoffRetryTime %d sec to check sync notification retry\n", backoffRetryTime);
+		}
+		else
+		{
+			WalInfo("2. Wait for backoffRetryTime %d sec to check sync notification retry\n", backoffRetryTime);
+		}
+		WalInfo("SyncNotifyRetry: B4 wait\n" );
+		rv = pthread_cond_timedwait(&sync_condition, &sync_mutex, &ts);
+		if (rv == 0)
+		{
+			WalInfo("Received connection online event signal for retrying sync notification.\n");
+		} 
+		else if (rv == ETIMEDOUT) 
+		{
+			WalPrint("SyncNotifyRetry thread: Timeout occurred.\n");
+		} 
+		else 
+		{
+			WalError("SyncNotifyRetry thread: Error occurred: %d\n", rv);	
+			continue;
+		}
+		if(g_syncNotifyInProgress == 1)
+		{		
+			WalInfo("PARAM_NOTIFY is in progress\n");
+			continue;
+		}
+		if(g_checkSyncNotifyRetry)
+		{
+			dbCMC = getParameterValue(PARAM_CMC);
+		}
+		if(NULL == dbCMC)
+		{
+			WalError("SyncNotifyRetry thread: dbCMC is Null\n");	
+			continue;
+		} 
+		if(strcmp(dbCMC,"512"))
+		{       
+			//Retry sending sync notification to cloud
+			WalInfo("Retrying sync notification as cloud and CPE are out of sync, dbCMC is %s\n", dbCMC);
+			NotifyData *notifyData = (NotifyData *)malloc(sizeof(NotifyData) * 1);
+			memset(notifyData,0,sizeof(NotifyData));
+			notifyData->type = PARAM_NOTIFY_RETRY;
+			processNotification(notifyData);
+			WalInfo("After Sending processNotification\n");
+			c++;
+			if(backoffRetryTime == max_retry_sleep)
+		        {
+	        		c = 3;
+		        	backoffRetryTime = 0;
+			        WalPrint("backoffRetryTime reached max value, reseting to initial value\n");
+		        }
+
+		}
+		else
+		{
+			g_checkSyncNotifyRetry = 0;
+			WalInfo("g_checkSyncNotifyRetry is set to 0\n");
+			WalInfo("CMC is equal to 512, cloud and CPE are in sync\n");
+			c = 3;
+			backoffRetryTime = 0;
+			WalInfo("CMC is 512, reseting backoffRetryTime to initial value\n");
+		}
+		WAL_FREE(dbCMC);			
+	}
+	return NULL;
+}
 
 void ccspWebPaValueChangedCB(parameterSigStruct_t* val, int size, void* user_data)
 {
@@ -365,7 +481,10 @@ void ccspWebPaValueChangedCB(parameterSigStruct_t* val, int size, void* user_dat
 		WalError("Fatal: ccspWebPaValueChangedCB() notifyCbFn is NULL\n");
 		return;
 	}
-
+	g_syncNotifyInProgress = 1;
+	WalInfo("g_syncNotifyInProgress is set to 1\n");
+	g_checkSyncNotifyRetry = 1;
+	WalInfo("g_checkSyncNotifyRetry is set to 1\n");
 	paramNotify= (ParamNotify *) malloc(sizeof(ParamNotify));
 	paramNotify->paramName = val->parameterName;
 	paramNotify->oldValue= val->oldValue;
@@ -935,8 +1054,10 @@ static void handleNotificationEvents()
 			WAL_FREE(message);
 		}
 		else
-		{		
-			WalPrint("handleNotificationEvents : Before pthread cond wait in consumer thread\n");   
+		{	
+			g_syncNotifyInProgress = 0;
+			WalInfo("g_syncNotifyInProgress is set to 0\n") ; 
+			WalPrint("handleNotificationEvents : Before pthread cond wait in consumer thread\n"); 
 			pthread_cond_wait(&con, &mut);
 			pthread_mutex_unlock (&mut);
 			WalPrint("handleNotificationEvents : mutex unlock in consumer thread after cond wait\n");
@@ -1158,6 +1279,11 @@ void processNotification(NotifyData *notifyData)
 				//Added delay of 5s to fix wifi captive portal issue where sync notifications are sent before wifi updates the parameter values in device DB
 				WalInfo("Sleeping for 5 sec before sending SYNC_NOTIFICATION\n");
 				sleep(5);
+				//thread for retrying sync notifications when cloud and CPE are out of sync
+				if(!g_syncRetryThreadStarted)
+				{
+					SyncNotifyRetryTask();
+				}						
 	        	}
 	        		break;
 
@@ -1283,12 +1409,34 @@ void processNotification(NotifyData *notifyData)
 			}
 	        		break;
 
+	        	case PARAM_NOTIFY_RETRY:
+	        	{
+	        		WalInfo("Inside case:PARAM_NOTIFY_RETRY\n");
+	        		strcpy(dest, "event:SYNC_NOTIFICATION");
+				ret = processParamNotificationRetry(&cmc, &cid);
+				WalInfo("After processParamNotificationRetry\n");
+	        		if (ret != WDMP_SUCCESS)
+	        		{
+	        			free(dest);
+	        			return;
+	        		}	
+	        		WalInfo("After processParamNotificationRetry\n");			
+	        		cJSON_AddNumberToObject(notifyPayload, "cmc", cmc);
+	        		cJSON_AddStringToObject(notifyPayload, "cid", cid);
+				WAL_FREE(cid);
+	        	}
+	        		break;					
+
 	        	default:
 	        		break;
 	        }
 
 	        stringifiedNotifyPayload = cJSON_PrintUnformatted(notifyPayload);
-	        WalPrint("stringifiedNotifyPayload %s\n", stringifiedNotifyPayload);
+		
+		if(notifyData->type == PARAM_NOTIFY_RETRY)
+			WalInfo("stringifiedNotifyPayload during sync notify retry is %s\n", stringifiedNotifyPayload);
+		else
+	        	WalInfo("stringifiedNotifyPayload %s\n", stringifiedNotifyPayload);
 
 	        if (stringifiedNotifyPayload != NULL
 	        		&& strlen(device_id) != 0)
@@ -1367,6 +1515,34 @@ static WDMP_STATUS processParamNotification(ParamNotify *paramNotify,
 		WalError("Failed to Get CMC Value, hence ignoring the notification\n");
 	}
 	return status;
+}
+
+static WDMP_STATUS processParamNotificationRetry(unsigned int *cmc, char **cid)
+{
+	WalInfo("processParamNotificationRetry\n");
+	char *dbCID = NULL, *dbCMC = NULL;
+	dbCMC = getParameterValue(PARAM_CMC);
+		WalInfo("dbCMC is %s\n", dbCMC);
+	if (NULL != dbCMC) 
+	{
+	        dbCID = getParameterValue(PARAM_CID);
+	        WalInfo("dbCID is %s\n", dbCID);
+	        if (NULL == dbCID) 
+		{
+			WAL_FREE(dbCMC);
+			WalError("Error dbCID is NULL!\n");
+			return WDMP_FAILURE;
+		}
+	} 
+	else 
+	{
+	        WalError("Error dbCMC is NULL!\n");
+	        return WDMP_FAILURE;
+	}
+	(*cmc) = atoi(dbCMC);
+	(*cid) = dbCID;
+	WAL_FREE(dbCMC);
+	return WDMP_SUCCESS;	
 }
 
 /*
@@ -1765,4 +1941,14 @@ WDMP_STATUS validate_webpa_notification_data(char *notify_param_name, char *writ
 	}
 
 	return WDMP_SUCCESS;
+}
+
+pthread_cond_t *get_global_sync_condition(void)
+{
+    return &sync_condition;
+}
+
+pthread_mutex_t *get_global_sync_mutex(void)
+{
+    return &sync_mutex;
 }
